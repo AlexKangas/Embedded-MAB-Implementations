@@ -1,14 +1,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "swucb.h"
+#include "swucbfix.h"
+#include <stdint.h>
+#include "sqrtfix.h"
+#include "logfix.h"
+
 
 #define ITERATIONS 100
 #define WINDOW_SIZE 100
 
+#define PERCISION 16
+#define SHIFT_MASK ((1 << PERCISION) - 1)
+
+#define FIX_ADD(a,b) (a + b)
+#define FIX_SUB(a,b) (a - b)
+#define FIX_MUL(a,b) ((a * b) >> PERCISION)
+#define FIX_DIV(a,b) ((uint32_t)(((uint64_t)a << PERCISION)/b))
+
 typedef struct {
 
-  int value;
+  uint32_t value;
   struct link_t *next;
   
 } link_t;
@@ -17,26 +29,26 @@ typedef struct {
 
   link_t *first;
   link_t *last;
-  int size;
+  uint32_t size;
   
 } linked_list_t;
 
 typedef struct {
 
-  int arm;
-  double upper_bound;
+  uint32_t arm;
+  uint32_t upper_bound;
 
 } upper_bound_t;
 
 typedef struct {
 
-  int arm;
+  uint32_t arm;
   double probability;
   linked_list_t *window;
 
 } arm_t;
 
-static link_t *link_init(int value){
+static link_t *link_init(uint32_t value){
 
   link_t *link = calloc(1, sizeof(link_t));
   link->value = value;
@@ -58,7 +70,7 @@ static linked_list_t *window_init(){
 
 }
 
-static void window_append(linked_list_t *window, int value){
+static void window_append(linked_list_t *window, uint32_t value){
 
   link_t *link = link_init(value);
 
@@ -75,7 +87,7 @@ static void window_append(linked_list_t *window, int value){
 
   }
 
-  if(window->size < 100){
+  if(window->size < 100 << PERCISION){
 
     window->size++;
     
@@ -104,15 +116,15 @@ static void window_destroy(linked_list_t *window){
 
 }
 
-static int *shift_window(int window[]){
+static uint32_t *shift_window(uint32_t window[]){
 
-  for(int i = 0; i < WINDOW_SIZE-1; ++i){
+  for(uint32_t i = 0; i < WINDOW_SIZE-1; ++i){
 
     window[i] = window[i+1];
 
   }
 
-  window[WINDOW_SIZE-1] = -1;
+  //window[WINDOW_SIZE-1] = -1;
 
   return window;
 
@@ -121,7 +133,7 @@ static int *shift_window(int window[]){
 
 
 
-static int min(int a, int b){
+static uint32_t min(uint32_t a, uint32_t b){
 
   if (a<b) {return a;}
   else {return b;}
@@ -129,9 +141,9 @@ static int min(int a, int b){
 }
 
 
-static double estimate(linked_list_t *window){
+static uint32_t estimate(linked_list_t *window){
 
-  int sum = 0;
+  uint32_t sum = 0;
   link_t *iter = window->first;
   
   while(iter != NULL){
@@ -141,22 +153,27 @@ static double estimate(linked_list_t *window){
 
   }
 
-  return (double)sum / (double)window->size;
+  return FIX_DIV(sum, window->size);
 
 }
 
 
-static int get_arg_max(int num_arms, arm_t init_arms[], int t){
+static uint32_t get_arg_max(uint32_t num_arms, arm_t init_arms[], uint32_t t){
 
   //double upper_bounds[num_arms];
 
-  upper_bound_t max_bound = {-1, -1};
-  double current_bound;
+  upper_bound_t max_bound = {0, 0};
+  uint32_t current_bound;
 
-  for(int arm = 0; arm < num_arms; ++arm){
+  for(uint32_t arm = 0; arm < num_arms; ++arm){
 
-    current_bound = estimate(init_arms[arm].window) + sqrt((2*log(min(WINDOW_SIZE,t)))/init_arms[arm].window->size);
+    current_bound = estimate(init_arms[arm].window) + isqrt_improved((uint32_t)FIX_DIV(FIX_MUL(2 << PERCISION, logfix(min(WINDOW_SIZE << PERCISION,t), PERCISION)), init_arms[arm].window->size));
 
+    //printf("%d %d\n", estimate(init_arms[arm].window), isqrt_improved(FIX_DIV(FIX_MUL(2 << PERCISION, logfix(min(WINDOW_SIZE << PERCISION,t), PERCISION)), init_arms[arm].window->size)));
+
+    //printf("%d\n", arm);
+    //printf("%d\n", current_bound);
+    
     if(current_bound > max_bound.upper_bound){
 
       max_bound.arm = arm;
@@ -165,13 +182,17 @@ static int get_arg_max(int num_arms, arm_t init_arms[], int t){
     }
   }
 
+  //printf("%d %d\n", max_bound.upper_bound, max_bound.arm);
+
   return max_bound.arm;
   
 }
 
 
 
-static int swucb_draw_sample(double probability){
+static uint32_t swucb_draw_sample(double probability){
+
+  //double probability = ((double)fix / (double)(1 << PERCISION));
 
   if(rand() <  probability * ((double)RAND_MAX + 1.0)){
 
@@ -187,12 +208,12 @@ static int swucb_draw_sample(double probability){
 }
 
 
-double swucb(double *arms, int num_arms){
+uint32_t swucbfix(double *arms, uint32_t num_arms){
   arm_t init_arms[num_arms];
-  int successes = 0;
-  int sample = -1;
+  uint32_t successes = 0;
+  uint32_t sample;
   
-  for(int i = 0; i < num_arms; ++i){
+  for(uint32_t i = 0; i < num_arms; ++i){
 
     init_arms[i].arm = i;
     init_arms[i].probability = arms[i];
@@ -207,9 +228,13 @@ double swucb(double *arms, int num_arms){
     
   }
 
-  for(int t = num_arms; t < ITERATIONS; ++t){
+  for(uint32_t i = num_arms; i < ITERATIONS; ++i){
 
-    int arm = get_arg_max(num_arms, init_arms, t);
+    uint32_t t = (i << PERCISION);
+
+    //printf("%d\n", t >> PERCISION);
+
+    uint32_t arm = get_arg_max(num_arms, init_arms, t);
 
     sample = swucb_draw_sample(arms[arm]);
     if(sample == 1){
@@ -221,14 +246,20 @@ double swucb(double *arms, int num_arms){
 
   }
 
-  for(int i = 0; i < num_arms; ++i){
+  for(uint32_t i = 0; i < num_arms; ++i){
 
     window_destroy(init_arms[i].window);
     
     
   }
 
-  return (double)successes / ITERATIONS;
+  
+  uint32_t iterations_fix = ITERATIONS << PERCISION;
+  uint32_t pdr_fix = FIX_DIV(successes << PERCISION, iterations_fix);
+
+
+  
+  return pdr_fix;
 
 
 }
