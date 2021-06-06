@@ -1,0 +1,41 @@
+K 25
+svn:wc:ra_dav:version-url
+V 30
+/svn/!svn/ver/21/trunk/fixtest
+END
+hiclock.c
+K 25
+svn:wc:ra_dav:version-url
+V 40
+/svn/!svn/ver/11/trunk/fixtest/hiclock.c
+END
+hiclock.h
+K 25
+svn:wc:ra_dav:version-url
+V 40
+/svn/!svn/ver/11/trunk/fixtest/hiclock.h
+END
+fixtest.layout
+K 25
+svn:wc:ra_dav:version-url
+V 45
+/svn/!svn/ver/17/trunk/fixtest/fixtest.layout
+END
+fixtest.depend
+K 25
+svn:wc:ra_dav:version-url
+V 45
+/svn/!svn/ver/21/trunk/fixtest/fixtest.depend
+END
+main.c
+K 25
+svn:wc:ra_dav:version-url
+V 37
+/svn/!svn/ver/20/trunk/fixtest/main.c
+END
+fixtest.cbp
+K 25
+svn:wc:ra_dav:version-url
+V 42
+/svn/!svn/ver/11/trunk/fixtest/fixtest.cbp
+END
