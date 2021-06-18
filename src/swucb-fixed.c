@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
+#include <inttypes.h>
 
 #define min(a,b) ((a) < (b) ? (a) : (b))
 
@@ -168,11 +169,11 @@ static uint32_t select_arm(window_t *window, uint32_t t, fix16_t logs[]){
 
 fix16_t *get_logs(){
 
-  FILE *file = fopen("log10000.txt", "r");
+  FILE *file = fopen("src/log10000.txt", "r");
 
   uint32_t *logs = calloc(1002, sizeof(fix16_t));
 
-  for(uint32_t i = 1 ; fscanf(file,"%d\n",&logs[i]) == 1  && i <= 1000; ++i);
+  for(uint32_t i = 1 ; fscanf(file,"%" PRIu32 "\n",&logs[i]) == 1  && i <= 1000; ++i);
   fclose(file);
 
   return logs;

@@ -113,13 +113,12 @@ int main(int argc, char *argv[]){
 
   srandom(time(NULL));
 
-  FILE *file = fopen("pdrs.txt", "r");
+  FILE *file = fopen("src/pdrs.txt", "r");
 
   arm_values_t *arm_values = calloc(ITERATIONS, sizeof(arm_values_t));
 
   arm_values_t *iter = arm_values;
 
-  int res;
 
   for(int i = 0; i < ITERATIONS; ++i){
     for(uint32_t arm = 0 ; arm < NUM_ARMS; ++arm){
