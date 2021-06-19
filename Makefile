@@ -28,16 +28,33 @@ main: $(OBJ)
 
 
 LOOPS = 40
+MAKEFLAGS += -j$(LOOPS)
+WINDOW = 50
+TIME = 51
 run: main
-	./main >> results/$(LOOPS).txt
+	./main $(TIME) >> results/$(TIME).txt
+
+rundata: main
+	./main >> results/dataset/dataset.txt
+
+runmanydata: main
+	#for ((i=1; i <= ${LOOPS}; ++i)) do ./main >> results/$(WINDOW).txt & ; done
+	for ((i=1; i <= ${LOOPS}; ++i)) do $(MAKE) rundata; done
 
 runmany: main
-	for ((i=1; i <= ${LOOPS}; ++i)) do make run; done
+	#for ((i=1; i <= ${LOOPS}; ++i)) do ./main >> results/$(WINDOW).txt & ; done
+	for ((i=1; i <= ${LOOPS}; ++i)) do $(MAKE) run; done
+
+runmanytime: main
+	#for ((i=1; i <= ${LOOPS}; ++i)) do ./main >> results/$(TIME).txt & ; done
+	for ((i=1; i <= ${LOOPS}; ++i)) do $(MAKE) run; done
 .PHONY: loop
 
 prog:
         # Commands for making prog
 
+parse: results/40.txt
+	sed 's/|/\n/g' results/40.txt | sed 's/,/ /g' | sort -V | awk 'NR>1 { k = $1 OFS $2 OFS $3 OFS $4 }{ arr[k] += $5; count[k]++ }END{ for (i in arr){ print i, arr[i]/count[i]}}' | sort -V >> res50_complete.txt
 
 .PHONY: clean
 

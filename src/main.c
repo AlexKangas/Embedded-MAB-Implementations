@@ -14,6 +14,10 @@
 
 #define WINDOW_SIZE 1000
 
+#define ITERATIONS_DATA 10000
+
+#define WINDOW_SIZE_DATA ITERATIONS_DATA
+
 typedef struct {
 
   double arms[NUM_ARMS];
@@ -109,10 +113,70 @@ void simulation_fixed(uint32_t window_size, uint32_t time_interval, arm_values_t
   printf("2,%d,%d,%lf|",window_size,time_interval,pdr);
 }
 
+
+void dataset_float(int window_size, arm_values_t *arm_values){
+
+  swucb_float_args_t *args = swucb_float_init(window_size);
+  int successes = 0;
+  int arm = 0;
+  int sample = 0;
+
+  for(int t = 1; t <= ITERATIONS_DATA; ++t){
+
+    arm = swucb_float_get_arm(args);
+    
+    sample = draw_sample(arm_values[0].arms[arm]);
+
+    swucb_float_append_result(args, sample, arm);
+
+    successes += sample;
+
+  }
+  swucb_float_destroy(args);
+  
+  
+  double pdr = (double)successes / (double)ITERATIONS_DATA;
+  printf("1,%d,%lf|",window_size,pdr);
+
+  
+
+
+}
+
+void dataset_fixed(uint32_t window_size, arm_values_t *arm_values){
+
+  swucb_args_t *args = swucb_init(window_size);
+  uint32_t successes = 0;
+  uint32_t arm = 0;
+  uint32_t sample = 0;
+
+  for(int t = 1; t <= ITERATIONS_DATA; ++t){
+
+    arm = swucb_get_arm(args);
+    
+    sample = draw_sample(arm_values[0].arms[arm]);
+
+    swucb_append_result(args, sample, arm);
+
+    successes += sample;
+
+  }
+  swucb_destroy(args);
+  
+  double pdr = (double)successes / (double)ITERATIONS_DATA;
+  printf("2,%d,%lf|",window_size,pdr);
+}
+
 int main(int argc, char *argv[]){
 
   srandom(time(NULL));
 
+  //int window = 900;
+
+  //window = atoi(argv[1]);
+  //int time = atoi(argv[1]);
+
+  /*
   FILE *file = fopen("src/pdrs.txt", "r");
 
   arm_values_t *arm_values = calloc(ITERATIONS, sizeof(arm_values_t));
@@ -129,16 +193,39 @@ int main(int argc, char *argv[]){
   }
   fclose(file);
 
-  //fix16_t *logs = get_logs();
 
   
   for(int time_interval = 1; time_interval <= TIME_INTERVAL; ++time_interval){
-    for(int window_size = 50; window_size <= 50; ++window_size){
+    for(int window_size = 1; window_size <= WINDOW_SIZE; ++window_size){
       simulation_float(window_size, time_interval, arm_values);
       //simulation_fixed(window_size, time_interval, arm_values, logs);
       simulation_fixed(window_size, time_interval, arm_values);
     }
   }
+  */
+
+
+  //DATASET
+  FILE *file = fopen("dataset/datapdrs.txt", "r");
+
+  arm_values_t *arm_values = calloc(1, sizeof(arm_values_t));
+
+  arm_values_t *iter = arm_values;
+
+
+  
+  for(uint32_t arm = 0 ; arm < NUM_ARMS; ++arm){
+
+    fscanf(file,"%lf\n",&(iter[0].arms[arm]));
+
+  }
+  
+  fclose(file);
+  for(int window_size = 1; window_size <= WINDOW_SIZE_DATA; ++window_size){
+      dataset_float(window_size, arm_values);
+      //simulation_fixed(window_size, time_interval, arm_values, logs);
+      dataset_fixed(window_size, arm_values);
+    }
   
   //free(logs);
   free(arm_values);

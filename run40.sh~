@@ -1,0 +1,7 @@
+#!/bin/sh
+
+for i in {1..5}
+do
+echo Running for simulation $i
+python script.py $i > ./outlogs/$i.log 2>&1 &
+done
