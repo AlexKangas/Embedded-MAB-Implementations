@@ -6,35 +6,52 @@
 #include <time.h>
 #include <stdio.h>
 
+#include "common.h"
 
-#define min(a,b) ((a) < (b) ? (a) : (b))
+//Gives the minimum value of a and b
+//#define min(a,b) ((a) < (b) ? (a) : (b))
 
 
 
 typedef struct link link_t;
 typedef struct window window_t;
 
+//Datatype for an entry in the sliding window
 struct link{
 
   int value;
   int arm;
-  link_t *next;
+  link_t *next; // Next entry in the window
 
 };
 
+// Datatype for a sliding window, which is basically a linked list
 struct window{
 
-  link_t *first;
-  link_t *last;
-  int size_current;
-  int size_max;
-  int selections[NUM_ARMS];
-  int sums[NUM_ARMS];
+  link_t *first;    // First entry in the window
+  link_t *last;     // Last entry in the window
+  int size_current; // Current size of the sliding window
+  int size_max;     // Maximum size of the sliding window
+  int selections[NUM_ARMS]; // Stores the number of samples of each arm currently in the sliding window
+  int sums[NUM_ARMS]; //Stores the sum of successful samples for each arm that are currently in the sliding window
 
 };
 
+double min(double a, double b){
 
+  if(a < b){
+    return a;
+  }
+  else{
+    return b;
+  }
 
+}
+
+// Creates an entry for the sliding window
+// @param value the value of the sample, which is success (1) or failure (0)
+// @param arm the arm that the sample belongs to
+// @return the allocated entry
 link_t *link_init(int value, int arm){
 
   link_t *link = calloc(1, sizeof(link_t));
@@ -46,7 +63,9 @@ link_t *link_init(int value, int arm){
 
 }
 
-
+// Creates a sliding window
+// @param window_size the maximum possible size of the sliding window
+// @return an allocated sliding window
 window_t *window_init(int window_size){
 
   window_t *window = calloc(1, sizeof(window_t));
@@ -63,17 +82,21 @@ window_t *window_init(int window_size){
 
 }
 
+// Appends a sample into the sliding window
+// @param window the sliding window
+// @param value the sample value to be appended
+// @param arm the arm that the sample belongs to
 void window_append(window_t *window, int value, int arm){
 
   link_t *link = link_init(value, arm);
 
-  if(window->last == NULL){
+  if(window->last == NULL){ // If the sliding window is empty
 
     window->first = link;
     window->last = link;
 
   }
-  else{
+  else{ // If the sliding window already contains entries
 
     window->last->next = link;
     window->last = link;
@@ -88,7 +111,7 @@ void window_append(window_t *window, int value, int arm){
     window->size_current++;
 
   }
-  else{
+  else{ // If the sliding window is larger than it's max size, then remove the first entry
 
     link_t *temp = window->first;
     window->first = window->first->next;
@@ -100,6 +123,8 @@ void window_append(window_t *window, int value, int arm){
 
 }
 
+// Deallocates the sliding window
+// @param window the sliding window to be deallocated
 void window_destroy(window_t *window){
 
   while(window->first != NULL){
@@ -114,6 +139,9 @@ void window_destroy(window_t *window){
 
 }
 
+// Gets the mean value of the samples in the sliding window of an arm
+// @param window the sliding window
+// @param arm the arm to calculate the mean from
 double get_mean(window_t *window, int arm){
 
   int sum = window->sums[arm];
@@ -125,14 +153,16 @@ double get_mean(window_t *window, int arm){
 
 }
 
-
+// Gets the upper bound (or "padding function") of an arm
+// @param window the sliding window
+// @param t the current time step
+// @param arm the arm to calculate the upper bound from
 double get_upper_bound(window_t *window, int t, int arm){
 
   int selections = window->selections[arm];
 
   double log_res = log((double)min(window->size_max,t));
   double dividend = FLOAT_CONFIDENCE_LEVEL * log_res;
-  //TODO: test min instead and/or if zero
   double divisor = (double)selections;
   double quotient = dividend/divisor;
   double root = sqrt(quotient);
@@ -142,21 +172,24 @@ double get_upper_bound(window_t *window, int t, int arm){
 
 }
 
-
+// Selects an arm based on the current sliding window and time step
+// @param window the sliding window
+// @param t the current time step
+// @return the selected arm
 int select_arm(window_t *window, int t){
 
-  int max_arm = 0;
-  double max_result = 0;
+  int max_arm = 0;        // arm with the current maximum result
+  double max_result = 0;  // the current maximum result
+  
   for(int arm = 0; arm < NUM_ARMS; ++arm){
 
-    if(window->selections[arm] == 0){
+    if(window->selections[arm] == 0){ // If an arm does not have any samples in the sliding window, then select it
+      
       return arm;
     }
 
     double mean = get_mean(window, arm);
-
     double upper_bound = get_upper_bound(window, t, arm);
-    
     double current_result = mean + upper_bound;
 
     
@@ -172,7 +205,9 @@ int select_arm(window_t *window, int t){
 
 }
 
-
+// Initializes the algorithm with needed parameters
+// @param window_size the max fixed sliding window size of swucb
+// @return the parameters needed to run swucb
 swucb_float_args_t *swucb_float_init(int window_size){
 
   swucb_float_args_t *args = calloc(1, sizeof(swucb_float_args_t));
@@ -184,13 +219,15 @@ swucb_float_args_t *swucb_float_init(int window_size){
 
 }
 
-
+// Selects an arm based on the current time step and sliding window
+// @param args stores the current time step and sliding window
+// @return the selected arm
 int swucb_float_get_arm(swucb_float_args_t *args){
 
   window_t *window = args->window;
   int t = args->t;
   
-  if(t < 17){
+  if(t < NUM_ARMS){ // Select each arm once at first so that each arm has a sample in the sliding window
 
     return t-1;
 
@@ -203,7 +240,10 @@ int swucb_float_get_arm(swucb_float_args_t *args){
 
 }
 
-
+// Appends a sample to the sliding window
+// @param args stores the current time step and sliding window
+// @param result the result of the last sample draw, which is either a success (1) or a failure (0)
+// @param arm the arm which was selected by swucb
 void swucb_float_append_result(swucb_float_args_t *args, int result, int arm){
 
   window_append(args->window, result, arm);
@@ -211,7 +251,8 @@ void swucb_float_append_result(swucb_float_args_t *args, int result, int arm){
 
 }
 
-
+// Deallocates the sliding window
+// @param args stores the current time step and sliding window
 void swucb_float_destroy(swucb_float_args_t *args){
 
   window_destroy(args->window);
