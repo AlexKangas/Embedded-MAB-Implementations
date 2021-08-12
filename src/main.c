@@ -4,6 +4,7 @@
 #include <time.h>
 #include <math.h>
 
+#include "ducb-float.h"
 #include "swucb-float.h"
 #include "swucb-fixed.h"
 
@@ -127,6 +128,58 @@ void swucb_fixed(uint32_t window_size, uint32_t time_interval, arm_values_t *arm
   printf("fixed %d %d %lf\n",window_size,time_interval,pdr);
 }
 
+
+
+
+// Runs the floating point SWUCB algorithm
+// @param: window_size the static sliding window size
+// @param: time_interval the static duration in which PDR values remain static
+// @param: arm_values an array of PDR values for each channel at different time intervals
+void ducb_float(double discount, int time_interval, arm_values_t *arm_values, int *arms_index){
+
+  
+  ducb_float_args_t *args = ducb_float_init(discount); //Initializes the parameters used by the algorithm
+  
+  int successes = 0;  // Number of successful draws from samples
+  int arm = 0;        // Current selected arm
+  int sample = 0;     // Sample which is either successful (1) of failed (0)
+
+  //int arms_index = 0; // Current index value for arm_values which is used to iterate to a new set of PDRs in the array when a breakpoint has been reached
+
+  double pdr = -1;
+
+  for(int t = 1; t <= ITERATIONS; ++t){
+
+    arm = ducb_float_get_arm(args); // Get an arm from the algorithm
+    
+    sample = draw_sample(arm_values[*arms_index].arms[arm]); // Draw a sample based on the current PDR of the selected arm
+
+    ducb_float_append_result(args, sample, arm); // Append the result to the sliding window in args
+
+    successes += sample;
+
+    //pdr = (double)successes / t;
+
+    //printf("float %lf %d %d %lf\n",discount,time_interval,t,pdr);
+    //printf("float %d %d %d %d\n",window_size,time_interval,t,successes);
+
+    if(t % time_interval == 0){ // If a breakpoint has been reached, then select the next set of PDR values for the arms
+
+      *arms_index = *arms_index + 1; 
+
+    }
+
+  }
+  ducb_float_destroy(args); // Deallocates the parameters for SWUCB
+  
+  
+  pdr = (double)successes / (double)ITERATIONS;
+
+  // Prints the result of the algorithm
+  printf("float %lf %d %lf\n",discount,time_interval,pdr);
+
+}
+
 int main(int argc, char *argv[]){
 
   srandom(time(NULL));
@@ -152,17 +205,24 @@ int main(int argc, char *argv[]){
     }
   }
   fclose(file);
-  for(int window_size = 100; window_size <= 1000; window_size+=100){
+  /*
+    for(int window_size = 100; window_size < 1000; window_size+=100){
     for(int i = 0; i < 40; ++i){
-      swucb_float(window_size, TIME_INTERVAL, arm_values, &arms_index);
-      //arms_index = 0; //For pdrtest2.txt
+    swucb_float(window_size, TIME_INTERVAL, arm_values, &arms_index);
+    //arms_index = 0; //For pdrtest2.txt
       
-      //swucb_float(1000, TIME_INTERVAL, arm_values, &arms_index);
-      //swucb_fixed(window_size, TIME_INTERVAL, arm_values);
+    //swucb_float(1000, TIME_INTERVAL, arm_values, &arms_index);
+    //swucb_fixed(window_size, TIME_INTERVAL, arm_values);
     }
-  }
+    }
+  */
   //swucb_float(10000, TIME_INTERVAL, arm_values, &arms_index);
- 
+
+  for(double discount = 0.1; discount <= 1.0; discount += 0.1){
+
+    ducb_float(discount, TIME_INTERVAL, arm_values, &arms_index);
+
+  }
   
   free(arm_values);
   return 0;

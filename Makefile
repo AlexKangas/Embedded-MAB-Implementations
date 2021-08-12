@@ -13,11 +13,10 @@ LDIR =lib
 
 LIBS=-lm
 
-_DEPS = swucb-fixed.h swucb-float.h fixed-point.h
+_DEPS = swucb-fixed.h swucb-float.h fixed-point.h ducb-float.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-
-_OBJ = main.o swucb-fixed.o swucb-float.o fixed-point.o
+_OBJ = main.o swucb-fixed.o swucb-float.o fixed-point.o ducb-float.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 

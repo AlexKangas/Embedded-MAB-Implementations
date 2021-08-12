@@ -37,7 +37,7 @@ struct window{
 
 };
 
-double min(double a, double b){
+static double min(double a, double b){
 
   if(a < b){
     return a;
@@ -52,7 +52,7 @@ double min(double a, double b){
 // @param value the value of the sample, which is success (1) or failure (0)
 // @param arm the arm that the sample belongs to
 // @return the allocated entry
-link_t *link_init(int value, int arm){
+static link_t *link_init(int value, int arm){
 
   link_t *link = calloc(1, sizeof(link_t));
   link->value = value;
@@ -66,7 +66,7 @@ link_t *link_init(int value, int arm){
 // Creates a sliding window
 // @param window_size the maximum possible size of the sliding window
 // @return an allocated sliding window
-window_t *window_init(int window_size){
+static window_t *window_init(int window_size){
 
   window_t *window = calloc(1, sizeof(window_t));
   window->size_current = 0;
@@ -86,7 +86,7 @@ window_t *window_init(int window_size){
 // @param window the sliding window
 // @param value the sample value to be appended
 // @param arm the arm that the sample belongs to
-void window_append(window_t *window, int value, int arm){
+static void window_append(window_t *window, int value, int arm){
 
   link_t *link = link_init(value, arm);
 
@@ -125,7 +125,7 @@ void window_append(window_t *window, int value, int arm){
 
 // Deallocates the sliding window
 // @param window the sliding window to be deallocated
-void window_destroy(window_t *window){
+static void window_destroy(window_t *window){
 
   while(window->first != NULL){
 
@@ -142,7 +142,7 @@ void window_destroy(window_t *window){
 // Gets the mean value of the samples in the sliding window of an arm
 // @param window the sliding window
 // @param arm the arm to calculate the mean from
-double get_mean(window_t *window, int arm){
+static double get_mean(window_t *window, int arm){
 
   int sum = window->sums[arm];
   int selections = window->selections[arm];
@@ -157,7 +157,7 @@ double get_mean(window_t *window, int arm){
 // @param window the sliding window
 // @param t the current time step
 // @param arm the arm to calculate the upper bound from
-double get_upper_bound(window_t *window, int t, int arm){
+static double get_upper_bound(window_t *window, int t, int arm){
 
   int selections = window->selections[arm];
 
@@ -176,7 +176,7 @@ double get_upper_bound(window_t *window, int t, int arm){
 // @param window the sliding window
 // @param t the current time step
 // @return the selected arm
-int select_arm(window_t *window, int t){
+static int select_arm(window_t *window, int t){
 
   int max_arm = 0;        // arm with the current maximum result
   double max_result = 0;  // the current maximum result
