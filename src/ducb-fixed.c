@@ -162,7 +162,8 @@ static fix16_t get_mean(history_t *history, uint32_t arm){
 // @param t the current time step
 // @param arm the arm to calculate the upper bound from
 //static fix16_t get_exploration(history_t *history, uint32_t t, uint32_t arm, fix16_t discount){
-static fix16_t get_exploration(history_t *history, uint32_t arm){
+//static fix16_t get_exploration(history_t *history, uint32_t arm){
+static fix16_t get_exploration(history_t *history, uint32_t arm,fix16_t confidence_level,fix16_t bound){
 
 
   fix16_t n_sum = 0;
@@ -174,7 +175,8 @@ static fix16_t get_exploration(history_t *history, uint32_t arm){
   
   fix16_t divisior = history->arms[arm].n;
 
-  fix16_t result = fix16_mul(2 << FRACTIONAL_BITS, fix16_sqrt(fix16_div(dividend, divisior)));
+  //fix16_t result = fix16_mul(BOUND, fix16_mul(2 << FRACTIONAL_BITS, fix16_sqrt(fix16_div(fix16_mul(CONFIDENCE_LEVEL, dividend), divisior))));
+  fix16_t result = fix16_mul(bound, fix16_mul(2 << FRACTIONAL_BITS, fix16_sqrt(fix16_div(fix16_mul(confidence_level, dividend), divisior))));
 
   return result;
 
@@ -185,7 +187,8 @@ static fix16_t get_exploration(history_t *history, uint32_t arm){
 // @param t the current time step
 // @return the selected arm
 //static uint32_t select_arm(history_t *history, uint32_t t, fix16_t discount){
-static uint32_t select_arm(history_t *history){
+//static uint32_t select_arm(history_t *history){
+static uint32_t select_arm(history_t *history,fix16_t confidence_level,fix16_t bound){
 
   uint32_t max_arm = 0;        // arm with the current maximum result
   fix16_t max_result = 0;  // the current maximum result
@@ -199,8 +202,10 @@ static uint32_t select_arm(history_t *history){
     */
 
     fix16_t mean = get_mean(history, arm);
-    fix16_t exploration = get_exploration(history, arm);
+    fix16_t exploration = get_exploration(history, arm, confidence_level,bound);
     fix16_t current_result = mean + exploration;
+
+    //printf("Mean: %d, exp: %d, curr: %d\n", mean, exploration, current_result);
 
     //pruint32_tf("Arm: %d, discount: %lf, t: %d, mean: %lf, explo: %lf, res: %lf\n", arm,discount,t,mean,exploration,current_result);
 
@@ -220,13 +225,16 @@ static uint32_t select_arm(history_t *history){
 // Initializes the algorithm with needed parameters
 // @param history_size the max fixed sliding history size of ducb
 // @return the parameters needed to run ducb
-ducb_fixed_args_t *ducb_fixed_init(fix16_t discount){
+//ducb_fixed_args_t *ducb_fixed_init(fix16_t discount){
+ducb_fixed_args_t *ducb_fixed_init(fix16_t discount,fix16_t confidence_level,fix16_t bound){
 
   ducb_fixed_args_t *args = calloc(1, sizeof(ducb_fixed_args_t));
 
   args->history = history_init();
   args->t = 1;
   args->discount = discount;
+  args->confidence_level = confidence_level;
+  args->bound = bound;
 
   return args;
 
@@ -240,8 +248,12 @@ uint32_t ducb_fixed_get_arm(ducb_fixed_args_t *args){
   history_t *history = args->history;
   uint32_t t = args->t;
   //fix16_t discount = args->discount;
+
+  fix16_t confidence_level = args->confidence_level;
+  fix16_t bound = args->bound;
   
-  if(t < 16){ // Select each arm once at first so that each arm has a sample in the sliding history
+  //if(t < 16){ // Select each arm once at first so that each arm has a sample in the sliding history
+  if(t-1 < 16){ // Select each arm once at first so that each arm has a sample in the sliding history
 
     return t-1;
 
@@ -249,7 +261,8 @@ uint32_t ducb_fixed_get_arm(ducb_fixed_args_t *args){
   else{
 
     //return select_arm(history, t, discount);
-    return select_arm(history);
+    //return select_arm(history);
+    return select_arm(history,confidence_level,bound);
 
   }
 

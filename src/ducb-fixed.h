@@ -4,6 +4,9 @@
 
 #include "common.h"
 
+//#define CONFIDENCE_LEVEL ((uint32_t)CONFIDENCE_LEVEL_NUM) << FRACTIONAL_BITS
+//#define BOUND ((int32_t)BOUND_NUM) << FRACTIONAL_BITS
+
 typedef struct link link_t; //Datatype for an entry in the sliding history
 
 typedef struct history history_t; // Datatype for a sliding history, which is basically a linked list
@@ -15,13 +18,15 @@ typedef struct {
   uint32_t t;            // Current time step
   fix16_t discount;
   fix16_t *logs;    //Array of fixed point log values
+  fix16_t confidence_level;
+  fix16_t bound;
   
 } ducb_fixed_args_t;
 
 // Initializes the algorithm with needed parameters
 // @param history_size the max fixed sliding history size of ducb
 // @return the parameters needed to run ducb
-ducb_fixed_args_t *ducb_fixed_init(fix16_t discount);
+ducb_fixed_args_t *ducb_fixed_init(fix16_t discount,fix16_t confidence_level,fix16_t bound);
 
 // Selects an arm based on the current time step and sliding history
 // @param args stores the current time step and sliding history

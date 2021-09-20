@@ -49,6 +49,7 @@ static link_t *link_init(fix16_t value, uint32_t arm){
 // Creates a sliding window
 // @param window_size the maximum possible size of the sliding window
 // @return an allocated sliding window
+//static window_t *window_init(uint32_t window_size){
 static window_t *window_init(uint32_t window_size){
 
   window_t *window = calloc(1, sizeof(window_t));
@@ -135,22 +136,40 @@ static fix16_t get_mean(window_t *window, uint32_t arm){
   
 }
 
+
+static fix16_t fix16_from_dbl(double a)
+{
+	double temp = a * fix16_one;
+#ifndef FIXMATH_NO_ROUNDING
+	temp += (temp >= 0) ? 0.5f : -0.5f;
+#endif
+	return (fix16_t)temp;
+}
+
 // Gets the upper bound (or "padding function") of an arm
 // @param window the sliding window
 // @param t the current time step
 // @param arm the arm to calculate the upper bound from
 // @param logs the array mapping indexes to their corresponding fixed point log values
-static fix16_t get_upper_bound(window_t *window, uint32_t t, uint32_t arm, fix16_t logs[]){
+//static fix16_t get_upper_bound(window_t *window, uint32_t t, uint32_t arm, fix16_t logs[]){
+static fix16_t get_upper_bound(window_t *window, uint32_t t, uint32_t arm, fix16_t logs[], fix16_t confidence_level, fix16_t bound){
 
   uint32_t selections = window->selections[arm];
 
   fix16_t log_res = logs[min(window->size_max,t)];
-  fix16_t dividend = fix16_mul(CONFIDENCE_LEVEL, log_res);
+  //fix16_t dividend = fix16_mul(CONFIDENCE_LEVEL, log_res);
+  //fix16_t dividend = fix16_mul(fix16_from_dbl(CONFIDENCE_LEVEL_NUM), log_res);
+  fix16_t dividend = fix16_mul(confidence_level, log_res);
   fix16_t divisor = selections << FRACTIONAL_BITS; // Change selections to its corresponding fixed point value
   fix16_t quotient = fix16_div(dividend, divisor);
   fix16_t root = fix16_sqrt(quotient);
-  fix16_t result = fix16_mul(BOUND, root);
+  //fix16_t result = fix16_mul(BOUND, root);
+  //fix16_t result = fix16_mul(fix16_from_dbl(BOUND_NUM), root);
+  fix16_t result = fix16_mul(bound, root);
 
+  //printf("Selections: %d, log_res: %d, conf: %d; dividend: %d, divisor: %d, quotient: %d, root: %d, result: %d\n", selections, log_res,confidence_level, dividend, divisor, quotient, root, result);
+
+  //printf("Selections: %d, log_res: %d, dividend: %d, divisor: %d, quotient: %d, root: %d, result: %d\n", selections, log_res, dividend, divisor, quotient, root, result);
   return result;
 
 }
@@ -160,7 +179,8 @@ static fix16_t get_upper_bound(window_t *window, uint32_t t, uint32_t arm, fix16
 // @param t the current time step
 // @param logs the array mapping indexes to their corresponding fixed point log values
 // @return the selected arm
-static uint32_t select_arm(window_t *window, uint32_t t, fix16_t logs[]){
+//static uint32_t select_arm(window_t *window, uint32_t t, fix16_t logs[]){
+static uint32_t select_arm(window_t *window, uint32_t t, fix16_t logs[], fix16_t confidence_level, fix16_t bound){
 
   uint32_t max_arm = 0;   // arm with the current maximum result
   fix16_t max_result = 0; // the current maximum result
@@ -173,9 +193,12 @@ static uint32_t select_arm(window_t *window, uint32_t t, fix16_t logs[]){
 
     fix16_t mean = get_mean(window, arm);
 
-    fix16_t upper_bound = get_upper_bound(window, t, arm, logs);
+    //fix16_t upper_bound = get_upper_bound(window, t, arm, logs);
+    fix16_t upper_bound = get_upper_bound(window, t, arm, logs, confidence_level, bound);
     
     fix16_t current_result = mean + upper_bound;
+
+    //printf("Mean: %d, exp: %d, curr: %d\n", mean, upper_bound, current_result);
     
     if(current_result > max_result){
 
@@ -193,11 +216,13 @@ static uint32_t select_arm(window_t *window, uint32_t t, fix16_t logs[]){
 // @return array where each index maps to its corresponding log value in fixed point format
 fix16_t *get_logs(){
 
-  FILE *file = fopen("src/log10000.txt", "r");
+  FILE *file = fopen("src/log65000.txt", "r");
 
-  uint32_t *logs = calloc(1002, sizeof(fix16_t));
+  //uint32_t *logs = calloc(64002, sizeof(fix16_t));
+  fix16_t *logs = calloc(32002, sizeof(fix16_t));
 
-  for(uint32_t i = 1 ; fscanf(file,"%" PRIu32 "\n",&logs[i]) == 1  && i <= 1000; ++i);
+  //for(uint32_t i = 1 ; fscanf(file,"%" PRIu32 "\n",&logs[i]) == 1  && i <= 64000; ++i);
+  for(uint32_t i = 1 ; fscanf(file,"%" PRId32 "\n",&logs[i]) == 1  && i <= 32000; ++i);
   fclose(file);
 
   return logs;
@@ -207,13 +232,16 @@ fix16_t *get_logs(){
 // Initializes the algorithm with needed parameters
 // @param window_size the max fixed sliding window size of swucb
 // @return the parameters needed to run swucb
-swucb_args_t *swucb_init(uint32_t window_size){
+//swucb_args_t *swucb_init(uint32_t window_size){
+swucb_args_t *swucb_init(uint32_t window_size,fix16_t confidence_level,fix16_t bound){
 
   swucb_args_t *args = calloc(1, sizeof(swucb_args_t));
 
   args->window = window_init(window_size);
   args->t = 1;
   args->logs = get_logs();
+  args->confidence_level = confidence_level;
+  args->bound = bound;
 
   return args;
 
@@ -227,15 +255,19 @@ uint32_t swucb_get_arm(swucb_args_t *args){
   window_t *window = args->window;
   uint32_t t = args->t;
   fix16_t *logs = args->logs;
+  fix16_t confidence_level = args->confidence_level;
+  fix16_t bound = args->bound;
   
-  if(t < NUM_ARMS){ // Select each arm once at first so that each arm has a sample in the sliding window
+  //if(t < NUM_ARMS){ // Select each arm once at first so that each arm has a sample in the sliding window
+  if(t-1 < NUM_ARMS){ // Select each arm once at first so that each arm has a sample in the sliding window
 
     return t-1;
 
   }
   else{
 
-    uint32_t arm = select_arm(window, t, logs);
+    //uint32_t arm = select_arm(window, t, logs);
+    uint32_t arm = select_arm(window, t, logs, confidence_level, bound);
 
     return arm;
 

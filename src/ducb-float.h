@@ -1,5 +1,10 @@
 #pragma once
 
+#include "common.h"
+
+//#define FLOAT_CONFIDENCE_LEVEL (double)CONFIDENCE_LEVEL_NUM
+//#define FLOAT_BOUND (double)BOUND_NUM
+
 typedef struct link link_t; //Datatype for an entry in the sliding history
 
 typedef struct history history_t; // Datatype for a sliding history, which is basically a linked list
@@ -10,13 +15,17 @@ typedef struct {
   history_t *history; // Sliding history
   int t;            // Current time step
   double discount;
+  double confidence_level;
+  double bound;
+  
 
 } ducb_float_args_t;
 
 // Initializes the algorithm with needed parameters
 // @param history_size the max fixed sliding history size of ducb
 // @return the parameters needed to run ducb
-ducb_float_args_t *ducb_float_init(double discount);
+//ducb_float_args_t *ducb_float_init(double discount);
+ducb_float_args_t *ducb_float_init(double discount,double confidence_level,double bound);
 
 // Selects an arm based on the current time step and sliding history
 // @param args stores the current time step and sliding history

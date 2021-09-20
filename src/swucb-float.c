@@ -157,16 +157,19 @@ static double get_mean(window_t *window, int arm){
 // @param window the sliding window
 // @param t the current time step
 // @param arm the arm to calculate the upper bound from
-static double get_upper_bound(window_t *window, int t, int arm){
+//static double get_upper_bound(window_t *window, int t, int arm){
+static double get_upper_bound(window_t *window, int t, int arm, double confidence_level, double bound){
 
   int selections = window->selections[arm];
 
   double log_res = log((double)min(window->size_max,t));
-  double dividend = FLOAT_CONFIDENCE_LEVEL * log_res;
+  //double dividend = FLOAT_CONFIDENCE_LEVEL * log_res;
+  double dividend = confidence_level * log_res;
   double divisor = (double)selections;
   double quotient = dividend/divisor;
   double root = sqrt(quotient);
-  double result = FLOAT_BOUND * root;
+  //double result = FLOAT_BOUND * root;
+  double result = bound * root;
 
   return result;
 
@@ -176,7 +179,8 @@ static double get_upper_bound(window_t *window, int t, int arm){
 // @param window the sliding window
 // @param t the current time step
 // @return the selected arm
-static int select_arm(window_t *window, int t){
+//static int select_arm(window_t *window, int t){
+static int select_arm(window_t *window, int t, double confidence_level, double bound){
 
   int max_arm = 0;        // arm with the current maximum result
   double max_result = 0;  // the current maximum result
@@ -189,9 +193,11 @@ static int select_arm(window_t *window, int t){
     }
 
     double mean = get_mean(window, arm);
-    double upper_bound = get_upper_bound(window, t, arm);
+    //double upper_bound = get_upper_bound(window, t, arm);
+    double upper_bound = get_upper_bound(window, t, arm, confidence_level, bound);
     double current_result = mean + upper_bound;
 
+    //printf("Mean: %lf, exp: %lf, curr: %lf\n", mean, upper_bound, current_result);
     
     if(current_result > max_result){
 
@@ -208,12 +214,15 @@ static int select_arm(window_t *window, int t){
 // Initializes the algorithm with needed parameters
 // @param window_size the max fixed sliding window size of swucb
 // @return the parameters needed to run swucb
-swucb_float_args_t *swucb_float_init(int window_size){
+//swucb_float_args_t *swucb_float_init(int window_size){
+swucb_float_args_t *swucb_float_init(int window_size, double confidence_level, double bound){
 
   swucb_float_args_t *args = calloc(1, sizeof(swucb_float_args_t));
 
   args->window = window_init(window_size);
   args->t = 1;
+  args->confidence_level = confidence_level;
+  args->bound = bound;
 
   return args;
 
@@ -226,15 +235,20 @@ int swucb_float_get_arm(swucb_float_args_t *args){
 
   window_t *window = args->window;
   int t = args->t;
+
+  double confidence_level = args->confidence_level;
+  double bound = args->bound;
   
-  if(t < NUM_ARMS){ // Select each arm once at first so that each arm has a sample in the sliding window
+  //if(t < NUM_ARMS){ // Select each arm once at first so that each arm has a sample in the sliding window
+  if(t-1 < NUM_ARMS){ // Select each arm once at first so that each arm has a sample in the sliding window
 
     return t-1;
 
   }
   else{
 
-    return select_arm(window, t);
+    //return select_arm(window, t);
+    return select_arm(window, t, confidence_level, bound);
 
   }
 

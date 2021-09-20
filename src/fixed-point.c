@@ -1,6 +1,7 @@
 #include "fixed-point.h"
 #include <stdbool.h>
-
+#include <stdio.h>
+#include <stdlib.h>
 
 /* 64-bit implementation for fix16_mul. Fastest version for e.g. ARM Cortex M3.
  * Performs a 32*32 -> 64bit multiplication. The middle 32 bits are the result,
@@ -239,10 +240,27 @@ static fix16_t _fix16_exp_cache_value[4096]  = { 0 };
 
 
 fix16_t fix16_exp(fix16_t inValue) {
-	if(inValue == 0        ) return fix16_one;
-	if(inValue == fix16_one) return fix16_e;
-	if(inValue >= 681391   ) return fix16_maximum;
-	if(inValue <= -772243  ) return 0;
+  //printf("hello: %d\n", inValue);
+  if(inValue == 0        ){
+    //printf("shit1\n");
+    return fix16_one;
+  }
+  if(inValue == fix16_one){
+    //printf("shit2\n");
+    return fix16_e;
+  }
+  if(inValue >= 681391   ){
+    //printf("shit3\n");
+    return fix16_maximum;
+  }
+  
+  if(inValue <= -772243  ){
+    //printf("shit4\n");
+    return 0;
+  }
+  
+
+  //printf("there!\n");
 
 	#ifndef FIXMATH_NO_CACHE
 	fix16_t tempIndex = (inValue ^ (inValue >> 16));
@@ -266,12 +284,18 @@ fix16_t fix16_exp(fix16_t inValue) {
 	fix16_t result = inValue + fix16_one;
 	fix16_t term = inValue;
 
+	//printf("term: %d\n",term);
+	//printf("result: %d\n",result);
+
 	uint_fast8_t i;        
 	for (i = 2; i < 30; i++)
 	{
 		term = fix16_mul(term, fix16_div(inValue, fix16_from_int(i)));
 		result += term;
-                
+		
+		//printf("term: %d\n",term);
+		//printf("result: %d\n",result);
+		
 		if ((term < 500) && ((i > 15) || (term < 20)))
 			break;
 	}
@@ -290,6 +314,7 @@ fix16_t fix16_exp(fix16_t inValue) {
 
 fix16_t fix16_log(fix16_t inValue)
 {
+  //printf("arg: %d\n", inValue);
 	fix16_t guess = fix16_from_int(2);
 	fix16_t delta;
 	int scaling = 0;
@@ -325,8 +350,11 @@ fix16_t fix16_log(fix16_t inValue)
 			delta = fix16_from_int(3);
 		
 		guess += delta;
+		
 	} while ((count++ < 10)
 		&& ((delta > 1) || (delta < -1)));
+
+	//printf("guess: %d\n", guess);
 	
 	return guess + fix16_from_int(scaling);
 }

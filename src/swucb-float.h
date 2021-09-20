@@ -15,13 +15,16 @@ typedef struct {
 
   window_t *window; // Sliding window
   int t;            // Current time step
+  double confidence_level;
+  double bound;
 
 } swucb_float_args_t;
 
 // Initializes the algorithm with needed parameters
 // @param window_size the max fixed sliding window size of swucb
 // @return the parameters needed to run swucb
-swucb_float_args_t *swucb_float_init(int window_size);
+//swucb_float_args_t *swucb_float_init(int window_size);
+swucb_float_args_t *swucb_float_init(int window_size, double confidence_level, double bound);
 
 // Selects an arm based on the current time step and sliding window
 // @param args stores the current time step and sliding window
