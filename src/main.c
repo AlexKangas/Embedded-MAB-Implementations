@@ -132,6 +132,18 @@ void swucb_float(int window_size, int time_interval, double confidence_level,dou
     }
 
   }
+  /*
+  window_t window = *(args->window);
+  printf("Size_current = %d\n",window.size_current);
+  printf("Size_max = %d\n",window.size_max);
+
+  for(int a = 0; a < 16; a++){
+    printf("Selections arm %d = %d\n",a, window.selections[a]);
+    printf("Sums arm %d = %d\n",a, window.sums[a]);
+  }
+  */
+  
+  
   swucb_float_destroy(args); // Deallocates the parameters for SWUCB
   
   
@@ -151,8 +163,12 @@ void swucb_float(int window_size, int time_interval, double confidence_level,dou
 // @param: arm_values an array of PDR values for each channel at different time intervals
 //void swucb_fixed(uint32_t window_size, uint32_t time_interval, arm_values_t *arm_values, uint32_t *arms_index, double confidence_level,double bound){
 void swucb_fixed(uint32_t window_size, uint32_t time_interval, double confidence_level,double bound){
-
-  swucb_args_t *args = swucb_init(window_size, fix16_from_dbl(confidence_level), fix16_from_dbl(bound)); //Initializes the parameters used by the algorithm
+  window_t window;
+  swucb_args_t args;
+  fix_link_t links[10000];
+  //int large[50000];
+  swucb_init(&args, &window, window_size, fix16_from_dbl(confidence_level), fix16_from_dbl(bound)); //Initializes the parameters used by the algorithm
+  //swucb_init(&args, window_size, fix16_from_dbl(confidence_level), fix16_from_dbl(bound)); //Initializes the parameters used by the algorithm
   uint32_t successes = 0; // Number of successful draws from samples
   uint32_t arm = 0;       // Current selected arm
   uint32_t sample = 0;    // Sample which is either successful (1) of failed (0)
@@ -162,16 +178,20 @@ void swucb_fixed(uint32_t window_size, uint32_t time_interval, double confidence
   double arms[NUM_ARMS];
 
   gen_pdr(arms);
+  //printf("SIZE: %ld", sizeof(uint32_t)*4*1000);
 
   //uint32_t arms_index = 0; // Current index value for arm_values which is used to iterate to a new set of PDRs in the array when a breakpoint has been reached
 
   for(int t = 1; t <= ITERATIONS; ++t){
 
-    arm = swucb_get_arm(args); // Get an arm from the algorithm
+    arm = swucb_get_arm(&args); // Get an arm from the algorithm
     
     sample = draw_sample(arms[arm]); // Draw a sample based on the current PDR of the selected arm
 
-    swucb_append_result(args, sample, arm); // Append the result to the sliding window in args
+    //fix_link_t link;
+    //printf("SIZE: %ld", sizeof(fix_link_t));
+
+    swucb_append_result(&args, sample, arm, &links[t-1]); // Append the result to the sliding window in args
 
     successes += sample;
 
@@ -187,11 +207,40 @@ void swucb_fixed(uint32_t window_size, uint32_t time_interval, double confidence
     }
 
   }
-  swucb_destroy(args);
+  //swucb_destroy(&args);
+  /*
+  printf("Size_current = %d\n",window.size_current);
+  printf("Size_max = %d\n",window.size_max);
+
+  for(int a = 0; a < 16; a++){
+    printf("Selections arm %d = %d\n",a, window.selections[a]);
+    printf("Sums arm %d = %d\n",a, window.sums[a]);
+  }
+  */
+  /*
+  int count = 0;
+  for(fix_link_t *link = window.first; link != NULL; link = link->next){
+    if (link == NULL){
+      printf("Yikes");
+    }
+    count++;
+    printf("Value: %d\n", link->value);
+    printf("Arm: %d\n", link->arm);
+    printf("Count: %d\n", count);
+    }
+  */
+  /*
+  if(window.last->next == NULL){
+    printf("HELLYEYEBEBE");
+    }*/
+
+
   
   pdr = (double)successes / (double)ITERATIONS;
   //Prints the result of the algorithm
   printf("fixed %d %d %lf %lf\n",window_size,time_interval,confidence_level,pdr);
+
+  
 
   //*arms_index = *arms_index + 1; 
 }
@@ -262,8 +311,9 @@ void ducb_float(double discount, int time_interval, double confidence_level,doub
 // @param: arm_values an array of PDR values for each channel at different time intervals
 void ducb_fixed(double discount, uint32_t time_interval, double confidence_level,double bound){
 
-  
-  ducb_fixed_args_t *args = ducb_fixed_init(fix16_from_dbl(discount),fix16_from_dbl(confidence_level),fix16_from_dbl(bound)); //Initializes the parameters used by the algorithm
+  history_t history[16];
+  ducb_fixed_args_t args;
+  ducb_fixed_init(&args,fix16_from_dbl(discount),fix16_from_dbl(confidence_level),fix16_from_dbl(bound), history); //Initializes the parameters used by the algorithm
   
   uint32_t successes = 0;  // Number of successful draws from samples
   uint32_t arm = 0;        // Current selected arm
@@ -279,11 +329,11 @@ void ducb_fixed(double discount, uint32_t time_interval, double confidence_level
 
   for(uint32_t t = 1; t <= ITERATIONS; ++t){
 
-    arm = ducb_fixed_get_arm(args); // Get an arm from the algorithm
+    arm = ducb_fixed_get_arm(&args); // Get an arm from the algorithm
     
     sample = draw_sample(arms[arm]); // Draw a sample based on the current PDR of the selected arm
 
-    ducb_fixed_append_result(args, sample, arm); // Append the result to the sliding window in args
+    ducb_fixed_append_result(&args, sample, arm); // Append the result to the sliding window in args
 
     successes += sample;
 
@@ -302,7 +352,7 @@ void ducb_fixed(double discount, uint32_t time_interval, double confidence_level
     }
 
   }
-  ducb_fixed_destroy(args); // Deallocates the parameters for SWUCB
+  ducb_fixed_destroy(&args); // Deallocates the parameters for SWUCB
   
   
   pdr = (double)successes / (double)ITERATIONS;
@@ -545,7 +595,7 @@ int main(int argc, char *argv[]){
 
   srandom(time(NULL));
 
-  
+  //printf("Hello?\n");
   //FILE *file = fopen("src/simulation.txt", "r");
   //FILE *file = fopen("src/simulation2.txt", "r");
   //FILE *file = fopen("src/simulation_3_arms.txt", "r");
@@ -570,55 +620,60 @@ int main(int argc, char *argv[]){
   }
   fclose(file);
   */
-  /*
+  
   for(int window_size = 100; window_size <= 1000; window_size+=100){
     for(int i = 0; i < 100; ++i){
+      /*
       swucb_float(window_size, 1000, 1, 1);
       swucb_float(window_size, 1000, 0.1, 1);
       swucb_float(window_size, 1000, 0.01, 1);
       swucb_float(window_size, 1000, 0.001, 1);
+      */
       swucb_float(window_size, 1000, 0.0001, 1);
-      swucb_float(window_size, 1000, 0.005, 1);
-
+      
+      /*
       swucb_fixed(window_size, 1000, 1, 1);
       swucb_fixed(window_size, 1000, 0.1, 1);
       swucb_fixed(window_size, 1000, 0.01, 1);
       swucb_fixed(window_size, 1000, 0.001, 1);
+      */
       swucb_fixed(window_size, 1000, 0.0001, 1);
-      swucb_fixed(window_size, 1000, 0.005, 1);
 
 
+      /*
       swucb_float(window_size, 500, 1, 1);
       swucb_float(window_size, 500, 0.1, 1);
       swucb_float(window_size, 500, 0.01, 1);
       swucb_float(window_size, 500, 0.001, 1);
+      */
       swucb_float(window_size, 500, 0.0001, 1);
-      swucb_float(window_size, 500, 0.005, 1);
 
+      /*
       swucb_fixed(window_size, 500, 1, 1);
       swucb_fixed(window_size, 500, 0.1, 1);
       swucb_fixed(window_size, 500, 0.01, 1);
       swucb_fixed(window_size, 500, 0.001, 1);
+      */
       swucb_fixed(window_size, 500, 0.0001, 1);
-      swucb_fixed(window_size, 500, 0.005, 1);
 
-
+      /*
       swucb_float(window_size, 200, 1, 1);
       swucb_float(window_size, 200, 0.1, 1);
       swucb_float(window_size, 200, 0.01, 1);
       swucb_float(window_size, 200, 0.001, 1);
+      */
       swucb_float(window_size, 200, 0.0001, 1);
-      swucb_float(window_size, 200, 0.005, 1);
 
+      /*
       swucb_fixed(window_size, 200, 1, 1);
       swucb_fixed(window_size, 200, 0.1, 1);
       swucb_fixed(window_size, 200, 0.01, 1);
       swucb_fixed(window_size, 200, 0.001, 1);
+      */
       swucb_fixed(window_size, 200, 0.0001, 1);
-      swucb_fixed(window_size, 200, 0.005, 1);
     }
   }
-  */
+  
 
   /*
   for(int window_size = 100; window_size <= 1000; window_size+=100){
@@ -697,6 +752,7 @@ int main(int argc, char *argv[]){
   }
 */
 
+  /*
   for(int window_size = 50; window_size <= 300; window_size+=50){
     for(double param = 0.1; param <= 1.0; param += 0.1){
       for(int i = 0; i < 40; ++i){
@@ -707,6 +763,7 @@ int main(int argc, char *argv[]){
       }
     }
   }
+  */
   
   /*
   for(double discount = 0.990; discount <= 1.00; discount += 0.001){
@@ -727,21 +784,19 @@ int main(int argc, char *argv[]){
   }
   */
   /*
-  for(double discount = 0.990; discount <= 1.00; discount += 0.001){
+  for(double discount = 0.950; discount <= 1.0; discount += 0.005){
     for(int i = 0; i < 100; ++i){
       ducb_float(discount, 1000, 1, 1);
       ducb_float(discount, 1000, 0.1, 1);
       ducb_float(discount, 1000, 0.01, 1);
       ducb_float(discount, 1000, 0.001, 1);
       ducb_float(discount, 1000, 0.0001, 1);
-      ducb_float(discount, 1000, 0.005, 1);
 
       ducb_fixed(discount, 1000, 1, 1);
       ducb_fixed(discount, 1000, 0.1, 1);
       ducb_fixed(discount, 1000, 0.01, 1);
       ducb_fixed(discount, 1000, 0.001, 1);
       ducb_fixed(discount, 1000, 0.0001, 1);
-      ducb_fixed(discount, 1000, 0.005, 1);
 
 
       ducb_float(discount, 500, 1, 1);
@@ -749,14 +804,12 @@ int main(int argc, char *argv[]){
       ducb_float(discount, 500, 0.01, 1);
       ducb_float(discount, 500, 0.001, 1);
       ducb_float(discount, 500, 0.0001, 1);
-      ducb_float(discount, 500, 0.005, 1);
 
       ducb_fixed(discount, 500, 1, 1);
       ducb_fixed(discount, 500, 0.1, 1);
       ducb_fixed(discount, 500, 0.01, 1);
       ducb_fixed(discount, 500, 0.001, 1);
       ducb_fixed(discount, 500, 0.0001, 1);
-      ducb_fixed(discount, 500, 0.005, 1);
 
 
       ducb_float(discount, 200, 1, 1);
@@ -764,14 +817,12 @@ int main(int argc, char *argv[]){
       ducb_float(discount, 200, 0.01, 1);
       ducb_float(discount, 200, 0.001, 1);
       ducb_float(discount, 200, 0.0001, 1);
-      ducb_float(discount, 200, 0.005, 1);
 
       ducb_fixed(discount, 200, 1, 1);
       ducb_fixed(discount, 200, 0.1, 1);
       ducb_fixed(discount, 200, 0.01, 1);
       ducb_fixed(discount, 200, 0.001, 1);
       ducb_fixed(discount, 200, 0.0001, 1);
-      ducb_fixed(discount, 200, 0.005, 1);
     }
   }
   */

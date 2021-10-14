@@ -10,63 +10,62 @@
 //#define min(a,b) ((a) < (b) ? (a) : (b))
 
 
-
+/*
 typedef struct link link_t;
-typedef struct history history_t;
+//typedef struct history history_t;
 
 //Datatype for an entry in the sliding history
 struct link{
 
-  /*
+  
   uint32_t value;
   uint32_t t;
   link_t *next; // Next entry in the history
-  */
+  
 
   fix16_t n;
   fix16_t rewards;
   
 
 };
-
+*/
 // Datatype for a sliding history, which is basically a linked list
-struct history{
 
-  link_t arms[16];
-
-};
-
+/*
 // Creates an entry for the sliding history
 // @param value the value of the sample, which is success (1) or failure (0)
 // @param arm the arm that the sample belongs to
 // @return the allocated entry
 static link_t *link_init(uint32_t value, uint32_t t){
 
-  /*
+  
   link_t *link = calloc(1, sizeof(link_t));
   link->value = value;
   link->t = t;
   link->next = NULL;
 
   return link;
-  */
+  
 
   return NULL;
 
 }
-
+*/
 // Creates a sliding history
 // @param history_size the maximum possible size of the sliding history
 // @return an allocated sliding history
-static history_t *history_init(){
+static history_t *history_init(history_t *history){
 
-  history_t *history = calloc(1, sizeof(history_t));
+  //history_t *history = calloc(1, sizeof(history_t));
 
   for(uint32_t i = 0; i < 16; ++i){
 
+    /*
     history->arms[i].n = 0;
     history->arms[i].rewards = 0;
-
+    */
+    history[i].n = 0;
+    history[i].rewards = 0;
   }
 
   return history;
@@ -93,13 +92,19 @@ static void history_append(history_t *history, uint32_t value, uint32_t arm, fix
 
   for(uint32_t i = 0; i < 16; ++i){
 
+    /*
     history->arms[i].n = fix16_mul(history->arms[i].n, discount);
     history->arms[i].rewards = fix16_mul(history->arms[i].rewards, discount);
-
+    */
+    history[i].n = fix16_mul(history[i].n, discount);
+    history[i].rewards = fix16_mul(history[i].rewards, discount);
   }
-
+  /*
   history->arms[arm].n = history->arms[arm].n + (1 << FRACTIONAL_BITS);
   history->arms[arm].rewards = history->arms[arm].rewards + (value << FRACTIONAL_BITS);
+  */
+  history[arm].n = history[arm].n + (1 << FRACTIONAL_BITS);
+  history[arm].rewards = history[arm].rewards + (value << FRACTIONAL_BITS);
 
 }
 
@@ -151,7 +156,8 @@ static fix16_t sum_discounts(history_t *history, uint32_t t, uint32_t arm, fix16
 static fix16_t get_mean(history_t *history, uint32_t arm){
 
 
-  return fix16_div(history->arms[arm].rewards, history->arms[arm].n);
+  //return fix16_div(history->arms[arm].rewards, history->arms[arm].n);
+  return fix16_div(history[arm].rewards, history[arm].n);
 
 }
 
@@ -168,12 +174,14 @@ static fix16_t get_exploration(history_t *history, uint32_t arm,fix16_t confiden
 
   fix16_t n_sum = 0;
   for(uint32_t a = 0; a < 16; ++a){
-    n_sum += history->arms[a].n;
+    //n_sum += history->arms[a].n;
+    n_sum += history[a].n;
   }
 
   fix16_t dividend = fix16_log(n_sum);
   
-  fix16_t divisior = history->arms[arm].n;
+  //fix16_t divisior = history->arms[arm].n;
+  fix16_t divisior = history[arm].n;
 
   //fix16_t result = fix16_mul(BOUND, fix16_mul(2 << FRACTIONAL_BITS, fix16_sqrt(fix16_div(fix16_mul(CONFIDENCE_LEVEL, dividend), divisior))));
   fix16_t result = fix16_mul(bound, fix16_mul(2 << FRACTIONAL_BITS, fix16_sqrt(fix16_div(fix16_mul(confidence_level, dividend), divisior))));
@@ -226,11 +234,11 @@ static uint32_t select_arm(history_t *history,fix16_t confidence_level,fix16_t b
 // @param history_size the max fixed sliding history size of ducb
 // @return the parameters needed to run ducb
 //ducb_fixed_args_t *ducb_fixed_init(fix16_t discount){
-ducb_fixed_args_t *ducb_fixed_init(fix16_t discount,fix16_t confidence_level,fix16_t bound){
+ducb_fixed_args_t *ducb_fixed_init(ducb_fixed_args_t *args,fix16_t discount,fix16_t confidence_level,fix16_t bound, history_t *history){
 
-  ducb_fixed_args_t *args = calloc(1, sizeof(ducb_fixed_args_t));
+  //ducb_fixed_args_t *args = calloc(1, sizeof(ducb_fixed_args_t));
 
-  args->history = history_init();
+  args->history = history_init(history);
   args->t = 1;
   args->discount = discount;
   args->confidence_level = confidence_level;
@@ -247,6 +255,7 @@ uint32_t ducb_fixed_get_arm(ducb_fixed_args_t *args){
 
   history_t *history = args->history;
   uint32_t t = args->t;
+  //printf("t = %u \n", t);
   //fix16_t discount = args->discount;
 
   fix16_t confidence_level = args->confidence_level;
@@ -282,10 +291,14 @@ void ducb_fixed_append_result(ducb_fixed_args_t *args, uint32_t result, uint32_t
 
 // Deallocates the sliding history
 // @param args stores the current time step and sliding history
+
 void ducb_fixed_destroy(ducb_fixed_args_t *args){
 
+  /*
   history_destroy(args->history);
   free(args);
+  */
 
 }
+
 

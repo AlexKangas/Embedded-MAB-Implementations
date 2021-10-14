@@ -32,4 +32,4 @@ run: main
 .PHONY: clean
 
 clean:
-	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~ main results/result.txt
+	rm -f $(ODIR)/*.o *~ core  main results/result.txt

@@ -7,9 +7,17 @@
 //#define CONFIDENCE_LEVEL ((uint32_t)CONFIDENCE_LEVEL_NUM) << FRACTIONAL_BITS
 //#define BOUND ((int32_t)BOUND_NUM) << FRACTIONAL_BITS
 
-typedef struct link link_t; //Datatype for an entry in the sliding history
+//typedef struct link link_t; //Datatype for an entry in the sliding history
 
-typedef struct history history_t; // Datatype for a sliding history, which is basically a linked list
+//typedef struct history history_t; // Datatype for a sliding history, which is basically a linked list
+
+typedef struct history{
+
+  //link_t arms[16];
+  fix16_t n;
+  fix16_t rewards;
+
+} history_t;
 
 // Arguments for running the algorithm
 typedef struct {
@@ -26,7 +34,7 @@ typedef struct {
 // Initializes the algorithm with needed parameters
 // @param history_size the max fixed sliding history size of ducb
 // @return the parameters needed to run ducb
-ducb_fixed_args_t *ducb_fixed_init(fix16_t discount,fix16_t confidence_level,fix16_t bound);
+ducb_fixed_args_t *ducb_fixed_init(ducb_fixed_args_t *args,fix16_t discount,fix16_t confidence_level,fix16_t bound,history_t *history);
 
 // Selects an arm based on the current time step and sliding history
 // @param args stores the current time step and sliding history

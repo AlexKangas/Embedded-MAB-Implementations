@@ -12,6 +12,7 @@
 #if !defined(FIXMATH_NO_64BIT) && !defined(FIXMATH_OPTIMIZE_8BIT)
 fix16_t fix16_mul(fix16_t inArg0, fix16_t inArg1)
 {
+  /*
 	int64_t product = (int64_t)inArg0 * inArg1;
 	
 	#ifndef FIXMATH_NO_OVERFLOW
@@ -47,6 +48,19 @@ fix16_t fix16_mul(fix16_t inArg0, fix16_t inArg1)
 	
 	return result;
 	#endif
+  */
+  
+  /*
+  int64_t product = (int64_t)inArg0 * inArg1;
+
+  return product >> 16;
+  */
+
+  int64_t product = (int64_t)inArg0 * inArg1;
+  int64_t result = product >> 16;
+  fix16_t res = result;
+  return res;
+  
 }
 #endif
 
@@ -73,6 +87,7 @@ static uint8_t clz(uint32_t x)
 
 fix16_t fix16_div(fix16_t a, fix16_t b)
 {
+  /*
 	// This uses a hardware 32/32 bit division multiple times, until we have
 	// computed all the bits in (a<<17)/b. Usually this takes 1-3 iterations.
 	
@@ -141,6 +156,21 @@ fix16_t fix16_div(fix16_t a, fix16_t b)
 	}
 	
 	return result;
+  */
+  
+  /*
+  int64_t dividend = (int64_t) a << 16;
+
+  return (int32_t) (dividend/b);
+  */
+
+  int64_t new_a = a;
+  int64_t dividend = new_a << 16;
+  int64_t result = dividend/b;
+  fix16_t res = result;
+
+  return res;
+	
 }
 #endif
 
@@ -321,7 +351,9 @@ fix16_t fix16_log(fix16_t inValue)
 	int count = 0;
 	
 	if (inValue <= 0)
+	  {
 		return fix16_minimum;
+	  }
 	
 	// Bring the value to the most accurate range (1 < x < 100)
 	const fix16_t e_to_fourth = 3578144;
