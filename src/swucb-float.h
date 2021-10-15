@@ -1,10 +1,7 @@
 #pragma once
 
-#include "common.h"
 
-//Parameters for the SWUCB algorithm for callculating the upper bound
-#define FLOAT_CONFIDENCE_LEVEL (double)CONFIDENCE_LEVEL_NUM
-#define FLOAT_BOUND (double)BOUND_NUM
+#define NUM_ARMS 16 //Number of arms used
 
 typedef struct link link_t; //Datatype for an entry in the sliding window
 

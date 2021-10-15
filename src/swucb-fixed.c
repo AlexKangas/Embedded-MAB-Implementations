@@ -1,29 +1,11 @@
 #include "swucb-fixed.h"
 
-#include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
-#include <time.h>
-#include <inttypes.h>
-
-//Gives the minimum value of a and b
-//#define min(a,b) ((a) < (b) ? (a) : (b))
-
-static uint32_t min(uint32_t a, uint32_t b){
-
-  if(a < b){
-    return a;
-  }
-  else{
-    return b;
-  }
-
-}
 
 
 // Mappings of logs[x] == y where x is an integer and y is a fixed-point number
-// 
-static const fix16_t logs[65000] = {0,
+static const fix16_t logs[10000] = {
+0,
 45426,
 71998,
 90852,
@@ -10025,45 +10007,24 @@ static const fix16_t logs[65000] = {0,
 603608,
 };
 
-/*
-//Datatype for an entry in the sliding window
-struct link{
+//Gives the minimum value of a and b
+static uint32_t min(uint32_t a, uint32_t b){
 
-  uint32_t value;
-  uint32_t arm;
-  fix_link_t *next; // Next entry in the window
+  if(a < b){
+    return a;
+  }
+  else{
+    return b;
+  }
 
-};
-
-// Datatype for a sliding window, which is basically a linked list
-struct window{
-
-  fix_link_t *first; // First entry in the window
-  fix_link_t *last;   // Last entry in the window
-  uint32_t size_current; // Current size of the sliding window
-  uint32_t size_max;     // Maximum size of the sliding window
-  uint32_t selections[NUM_ARMS];  // Stores the number of samples of each arm currently in the sliding window
-  uint32_t sums[NUM_ARMS]; //Stores the sum of successful samples for each arm that are currently in the sliding window
-
-};
-*/
+}
 
 // Creates an entry for the sliding window
+// @param link the entry to be created for the sliding window
 // @param value the value of the sample, which is success (1) or failure (0)
 // @param arm the arm that the sample belongs to
-// @return the allocated entry
-
-//static fix_link_t *link_init(fix_link_t *link, fix16_t value, uint32_t arm){
 static void link_init(fix_link_t *link, fix16_t value, uint32_t arm){
 
-  /*
-  fix_link_t *link = calloc(1, sizeof(fix_link_t));
-  link->value = value;
-  link->arm = arm;
-  link->next = NULL;
-
-  return link;
-  */
 
   link->value = value;
   link->arm = arm;
@@ -10075,14 +10036,10 @@ static void link_init(fix_link_t *link, fix16_t value, uint32_t arm){
 
 
 // Creates a sliding window
+// @param window the sliding window to be created
 // @param window_size the maximum possible size of the sliding window
-// @return an allocated sliding window
-//static window_t *window_init(uint32_t window_size){
-//static window_t *window_init(window_t *window,uint32_t window_size){
 static void window_init(window_t *window,uint32_t window_size){
 
-  /*
-  //window_t *window = calloc(1, sizeof(window_t));
   window->size_current = 0;
   window->size_max = window_size;
   for(uint32_t arm = 0; arm < NUM_ARMS; arm++){
@@ -10091,24 +10048,6 @@ static void window_init(window_t *window,uint32_t window_size){
   }
   window->first = NULL;
   window->last = NULL;
-
-  return window;
-  */
-
-  window->size_current = 0;
-  window->size_max = window_size;
-  for(uint32_t arm = 0; arm < NUM_ARMS; arm++){
-    window->selections[arm] = 0;
-    window->sums[arm] = 0;
-  }
-  window->first = NULL;
-  window->last = NULL;
-  /*
-  for(uint32_t arm = 0; arm < NUM_ARMS; arm++){
-    printf("Selections arm %d: %d\n", arm, window->selections[arm]);
-    printf("Sums arm %d: %d\n", arm, window->sums[arm]);
-  }
-  */
 
 }
 
@@ -10116,50 +10055,18 @@ static void window_init(window_t *window,uint32_t window_size){
 // @param window the sliding window
 // @param value the sample value to be appended
 // @param arm the arm that the sample belongs to
+// @param link the entry to be inserted
 static void window_append(window_t *window, uint32_t value, uint32_t arm, fix_link_t *link){
-
-  //fix_link_t *link = link_init(value, arm);
+  
   link_init(link, value, arm);
-
-  /*
-  if(link->next != NULL){
-      printf("WTFMAN\n");
-  }
-  */
+  
   if(window->last == NULL){ // If the sliding window is empty
-    //printf("YESYSYSY\n");
     window->first = link;
     window->last = link;
-
-    
-
   }
   else{ // If the sliding window already contains entries
-    /*printf("IWASHERE\n");
-    if(link->next == NULL){
-      printf("GOOD1\n");
-      }*/
     window->last->next = link;
-    /*if(link->next == NULL){
-      printf("GOOD2\n");
-      }*/
     window->last = link;
-    /*if(link->next == NULL){
-      printf("GOOD3\n");
-      }*/
-    
-    /*if(window->last->next != NULL){
-      if(link->next == NULL){
-	printf("KILLMEE\n");
-      }
-      printf("WTF\n");
-    }
-    else{
-      printf("ILUVYOI\n");
-
-      }*/
-    
-    //printf("%d\n",window->last->);
     
   }
 
@@ -10178,34 +10085,8 @@ static void window_append(window_t *window, uint32_t value, uint32_t arm, fix_li
     window->selections[temp->arm]--;
     window->sums[temp->arm] -= temp->value;
     temp->next = NULL;
-    //free(temp);
 
   }
-  /*
-  for(uint32_t arm = 0; arm < NUM_ARMS; arm++){
-    printf("Selections arm %d: %d\n", arm, window->selections[arm]);
-    printf("Sums arm %d: %d\n", arm, window->sums[arm]);
-  }
-  */
-
-}
-
-// Deallocates the sliding window
-// @param window the sliding window to be deallocated
-static void window_destroy(window_t *window){
-
-  
-  while(window->first != NULL){
-
-    fix_link_t *temp = window->first;
-    window->first = window->first->next;
-    temp->next = NULL;
-    //free(temp);
-
-  }
-
-  //free(window);
-  
 
 }
 
@@ -10216,50 +10097,26 @@ static fix16_t get_mean(window_t *window, uint32_t arm){
 
   fix16_t sum = window->sums[arm]  << FRACTIONAL_BITS;
   fix16_t selections = window->selections[arm]  << FRACTIONAL_BITS;
-
   
   return fix16_div(sum, selections);
   
 }
 
-/*
-static fix16_t fix16_from_dbl(double a)
-{
-	double temp = a * fix16_one;
-#ifndef FIXMATH_NO_ROUNDING
-	temp += (temp >= 0) ? 0.5f : -0.5f;
-#endif
-	return (fix16_t)temp;
-}
-*/
-
 // Gets the upper bound (or "padding function") of an arm
 // @param window the sliding window
 // @param t the current time step
 // @param arm the arm to calculate the upper bound from
-// @param logs the array mapping indexes to their corresponding fixed point log values
-//static fix16_t get_upper_bound(window_t *window, uint32_t t, uint32_t arm, fix16_t logs[]){
 static fix16_t get_upper_bound(window_t *window, uint32_t t, uint32_t arm, fix16_t confidence_level, fix16_t bound){
 
   uint32_t selections = window->selections[arm];
-
-  //printf("Selections arm %d: %d\n", arm, window->selections[arm]);
   fix16_t log_res = logs[min(window->size_max,t)];
   //fix16_t log_res = fix16_log(min(window->size_max,t) << 16);
-  //printf("ln(%d) = %d\n", min(window->size_max,t), log_res);
-  //fix16_t dividend = fix16_mul(CONFIDENCE_LEVEL, log_res);
-  //fix16_t dividend = fix16_mul(fix16_from_dbl(CONFIDENCE_LEVEL_NUM), log_res);
   fix16_t dividend = fix16_mul(confidence_level, log_res);
   fix16_t divisor = selections << FRACTIONAL_BITS; // Change selections to its corresponding fixed point value
   fix16_t quotient = fix16_div(dividend, divisor);
   fix16_t root = fix16_sqrt(quotient);
-  //fix16_t result = fix16_mul(BOUND, root);
-  //fix16_t result = fix16_mul(fix16_from_dbl(BOUND_NUM), root);
   fix16_t result = fix16_mul(bound, root);
-
-  //printf("Selections: %d, log_res: %d, conf: %d; dividend: %d, divisor: %d, quotient: %d, root: %d, result: %d\n", selections, log_res,confidence_level, dividend, divisor, quotient, root, result);
-
-  //printf("Selections: %d, log_res: %d, dividend: %d, divisor: %d, quotient: %d, root: %d, result: %d\n", selections, log_res, dividend, divisor, quotient, root, result);
+  
   return result;
 
 }
@@ -10267,9 +10124,7 @@ static fix16_t get_upper_bound(window_t *window, uint32_t t, uint32_t arm, fix16
 // Selects an arm based on the current sliding window and time step
 // @param window the sliding window
 // @param t the current time step
-// @param logs the array mapping indexes to their corresponding fixed point log values
 // @return the selected arm
-//static uint32_t select_arm(window_t *window, uint32_t t, fix16_t logs[]){
 static uint32_t select_arm(window_t *window, uint32_t t, fix16_t confidence_level, fix16_t bound){
 
   uint32_t max_arm = 0;   // arm with the current maximum result
@@ -10282,13 +10137,10 @@ static uint32_t select_arm(window_t *window, uint32_t t, fix16_t confidence_leve
     }
 
     fix16_t mean = get_mean(window, arm);
-
-    //fix16_t upper_bound = get_upper_bound(window, t, arm, logs);
+    
     fix16_t upper_bound = get_upper_bound(window, t, arm, confidence_level, bound);
     
     fix16_t current_result = mean + upper_bound;
-
-    //printf("Mean: %d, exp: %d, curr: %d\n", mean, upper_bound, current_result);
     
     if(current_result > max_result){
 
@@ -10302,59 +10154,28 @@ static uint32_t select_arm(window_t *window, uint32_t t, fix16_t confidence_leve
 
 }
 
-// Gets fixed point log values
-// @return array where each index maps to its corresponding log value in fixed point format
-/*
-fix16_t *get_logs(){
-
-  FILE *file = fopen("src/log65000.txt", "r");
-
-  //uint32_t *logs = calloc(64002, sizeof(fix16_t));
-  fix16_t *logs = calloc(32002, sizeof(fix16_t));
-
-  //for(uint32_t i = 1 ; fscanf(file,"%" PRIu32 "\n",&logs[i]) == 1  && i <= 64000; ++i);
-  for(uint32_t i = 1 ; fscanf(file,"%" PRId32 "\n",&logs[i]) == 1  && i <= 32000; ++i);
-  fclose(file);
-
-  return logs;
-
-}
-*/
-
 // Initializes the algorithm with needed parameters
+// @param args the variable to initialise the parameters into
 // @param window_size the max fixed sliding window size of swucb
-// @return the parameters needed to run swucb
-//swucb_args_t *swucb_init(uint32_t window_size){
-void swucb_init(swucb_args_t *args,window_t *window,uint32_t window_size,fix16_t confidence_level,fix16_t bound){
-//void swucb_init(swucb_args_t *args,uint32_t window_size,fix16_t confidence_level,fix16_t bound){
+void swucb_init(swucb_args_t *args,uint32_t window_size,fix16_t confidence_level,fix16_t bound){
 
-  //swucb_args_t *args = calloc(1, sizeof(swucb_args_t));
-  window_init(window,window_size);
-  args->window = window;
-  //args->window = window_init(window,window_size);
-  //window_init(&(args->window),window_size);
+  window_init(&(args->window),window_size);
   args->t = 1;
-  //args->logs = get_logs();
   args->confidence_level = confidence_level;
   args->bound = bound;
-
-  //return args;
 
 }
 
 // Selects an arm based on the current time step and sliding window
-// @param args stores the current time step, sliding window and fixed point log values
+// @param args stores the current time step, sliding window,
 // @return the selected arm
 uint32_t swucb_get_arm(swucb_args_t *args){
 
-  window_t *window = args->window;
-  //window_t *window = &(args->window);
+  window_t *window = &(args->window);
   uint32_t t = args->t;
-  //fix16_t *logs = args->logs;
   fix16_t confidence_level = args->confidence_level;
   fix16_t bound = args->bound;
   
-  //if(t < NUM_ARMS){ // Select each arm once at first so that each arm has a sample in the sliding window
   if(t-1 < NUM_ARMS){ // Select each arm once at first so that each arm has a sample in the sliding window
 
     return t-1;
@@ -10362,7 +10183,6 @@ uint32_t swucb_get_arm(swucb_args_t *args){
   }
   else{
 
-    //uint32_t arm = select_arm(window, t, logs);
     uint32_t arm = select_arm(window, t, confidence_level, bound);
 
     return arm;
@@ -10372,30 +10192,14 @@ uint32_t swucb_get_arm(swucb_args_t *args){
 }
 
 // Appends a sample to the sliding window
-// @param args stores the current time step, sliding window and fixed point log values
+// @param args stores the current time step, sliding window
 // @param result the result of the last sample draw, which is either a success (1) or a failure (0)
-// @param arm the arm which was selected by swucb
 void swucb_append_result(swucb_args_t *args, uint32_t result, uint32_t arm, fix_link_t *link){
 
-  //window_append(&(args->window), result, arm, link);
-  window_append(args->window, result, arm, link);
+  window_append(&(args->window), result, arm, link);
   args->t++;
 
 }
-
-// Deallocates the sliding window
-// @param args stores the current time step, sliding window and fixed point log values
-
-void swucb_destroy(swucb_args_t *args){
-  
-  window_destroy(args->window);
-
-
-  //free(args->logs);
-  //free(args);
-  
-}
-
 
 
 

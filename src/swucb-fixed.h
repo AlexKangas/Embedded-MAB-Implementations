@@ -2,13 +2,7 @@
 
 #include "fixed-point.h"
 
-#include "common.h"
-
-// Parameters used by swucb to calculate upper bounds
-//#define CONFIDENCE_LEVEL ((uint32_t)CONFIDENCE_LEVEL_NUM) << FRACTIONAL_BITS
-//#define CONFIDENCE_LEVEL ((int32_t)CONFIDENCE_LEVEL_NUM) << FRACTIONAL_BITS
-//#define BOUND BOUND_NUM << FRACTIONAL_BITS
-//#define BOUND ((int32_t)BOUND_NUM) << FRACTIONAL_BITS
+#define NUM_ARMS 16 //Number of arms used
 
 typedef struct fix_link fix_link_t; //Datatype for an entry in the sliding window
 typedef struct window window_t; // Datatype for a sliding window, which is basically a linked list
@@ -39,7 +33,7 @@ struct window{
 typedef struct {
 
   //window_t *window; //Sliding window
-  window_t *window; //Sliding window
+  window_t window; //Sliding window
   //window_t window; //Sliding window
   uint32_t t;       //Current time steps
   //fix16_t *logs;    //Array of fixed point log values
@@ -53,8 +47,8 @@ typedef struct {
 // @param window_size the max fixed sliding window size of swucb
 // @return the parameters needed to run swucb
 //swucb_args_t *swucb_init(uint32_t window_size);
-void swucb_init(swucb_args_t *args,window_t *window,uint32_t window_size,fix16_t confidence_level,fix16_t bound);
-//void swucb_init(swucb_args_t *args,uint32_t window_size,fix16_t confidence_level,fix16_t bound);
+//void swucb_init(swucb_args_t *args,window_t *window,uint32_t window_size,fix16_t confidence_level,fix16_t bound);
+void swucb_init(swucb_args_t *args,uint32_t window_size,fix16_t confidence_level,fix16_t bound);
 
 
 // Selects an arm based on the current time step and sliding window

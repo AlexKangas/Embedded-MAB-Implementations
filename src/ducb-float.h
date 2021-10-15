@@ -1,9 +1,6 @@
 #pragma once
 
-#include "common.h"
-
-//#define FLOAT_CONFIDENCE_LEVEL (double)CONFIDENCE_LEVEL_NUM
-//#define FLOAT_BOUND (double)BOUND_NUM
+#define NUM_ARMS 16 //Number of arms used
 
 typedef struct link link_t; //Datatype for an entry in the sliding history
 
@@ -12,7 +9,7 @@ typedef struct history history_t; // Datatype for a sliding history, which is ba
 // Arguments for running the algorithm
 typedef struct {
 
-  history_t *history; // Sliding history
+  history_t *history; 
   int t;            // Current time step
   double discount;
   double confidence_level;

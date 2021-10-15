@@ -8,10 +8,6 @@
 
 #include "common.h"
 
-//Gives the minimum value of a and b
-//#define min(a,b) ((a) < (b) ? (a) : (b))
-
-
 
 typedef struct link link_t;
 typedef struct window window_t;
@@ -163,12 +159,10 @@ static double get_upper_bound(window_t *window, int t, int arm, double confidenc
   int selections = window->selections[arm];
 
   double log_res = log((double)min(window->size_max,t));
-  //double dividend = FLOAT_CONFIDENCE_LEVEL * log_res;
   double dividend = confidence_level * log_res;
   double divisor = (double)selections;
   double quotient = dividend/divisor;
   double root = sqrt(quotient);
-  //double result = FLOAT_BOUND * root;
   double result = bound * root;
 
   return result;
@@ -193,11 +187,8 @@ static int select_arm(window_t *window, int t, double confidence_level, double b
     }
 
     double mean = get_mean(window, arm);
-    //double upper_bound = get_upper_bound(window, t, arm);
     double upper_bound = get_upper_bound(window, t, arm, confidence_level, bound);
     double current_result = mean + upper_bound;
-
-    //printf("Mean: %lf, exp: %lf, curr: %lf\n", mean, upper_bound, current_result);
     
     if(current_result > max_result){
 
@@ -214,7 +205,6 @@ static int select_arm(window_t *window, int t, double confidence_level, double b
 // Initializes the algorithm with needed parameters
 // @param window_size the max fixed sliding window size of swucb
 // @return the parameters needed to run swucb
-//swucb_float_args_t *swucb_float_init(int window_size){
 swucb_float_args_t *swucb_float_init(int window_size, double confidence_level, double bound){
 
   swucb_float_args_t *args = calloc(1, sizeof(swucb_float_args_t));
@@ -239,7 +229,6 @@ int swucb_float_get_arm(swucb_float_args_t *args){
   double confidence_level = args->confidence_level;
   double bound = args->bound;
   
-  //if(t < NUM_ARMS){ // Select each arm once at first so that each arm has a sample in the sliding window
   if(t-1 < NUM_ARMS){ // Select each arm once at first so that each arm has a sample in the sliding window
 
     return t-1;
@@ -247,7 +236,6 @@ int swucb_float_get_arm(swucb_float_args_t *args){
   }
   else{
 
-    //return select_arm(window, t);
     return select_arm(window, t, confidence_level, bound);
 
   }
