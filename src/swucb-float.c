@@ -6,8 +6,6 @@
 #include <time.h>
 #include <stdio.h>
 
-#include "common.h"
-
 
 typedef struct link link_t;
 typedef struct window window_t;
